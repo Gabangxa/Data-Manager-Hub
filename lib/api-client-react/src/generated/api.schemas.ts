@@ -73,6 +73,10 @@ export interface Snapshot {
   topHolders?: unknown | null;
   recentTrades?: unknown | null;
   errors?: string[] | null;
+  question?: string | null;
+  eventSlug?: string | null;
+  tags?: string[] | null;
+  negRisk?: boolean | null;
 }
 
 export interface SnapshotInput {
@@ -111,6 +115,7 @@ export interface Signal {
   exitPrice?: string | null;
   pnl?: string | null;
   resolved?: boolean | null;
+  question?: string | null;
 }
 
 export interface SignalInput {

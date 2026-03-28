@@ -18,4 +18,5 @@ export interface Signal {
   exitPrice?: string | null;
   pnl?: string | null;
   resolved?: boolean | null;
+  question?: string | null;
 }

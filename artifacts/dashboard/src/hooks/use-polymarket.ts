@@ -1,53 +1,55 @@
-import { 
-  useHealthCheck,
-  useListMarkets,
-  useListSnapshots,
-  useGetMarketSnapshots,
-  useListSignals,
-  useGetSignalCounts,
-  type ListSnapshotsParams,
-  type GetMarketSnapshotsParams,
-  type ListSignalsParams
+import { useQuery } from "@tanstack/react-query";
+import {
+  getHealthCheckQueryOptions,
+  getListMarketsQueryOptions,
+  getListSnapshotsQueryOptions,
+  getGetMarketSnapshotsQueryOptions,
+  getListSignalsQueryOptions,
+  getGetSignalCountsQueryOptions,
 } from "@workspace/api-client-react";
+import type { ListSnapshotsParams, GetMarketSnapshotsParams, ListSignalsParams } from "@workspace/api-client-react";
 
-// Standard polling interval for the trading terminal feel (30 seconds)
 const POLLING_INTERVAL = 30000;
 
 export function useLiveHealth() {
-  return useHealthCheck({
-    query: { refetchInterval: POLLING_INTERVAL }
+  return useQuery({
+    ...getHealthCheckQueryOptions(),
+    refetchInterval: POLLING_INTERVAL,
   });
 }
 
 export function useLiveMarkets() {
-  return useListMarkets({
-    query: { refetchInterval: POLLING_INTERVAL }
+  return useQuery({
+    ...getListMarketsQueryOptions(),
+    refetchInterval: POLLING_INTERVAL,
   });
 }
 
 export function useLiveSnapshots(params?: ListSnapshotsParams) {
-  return useListSnapshots(params, {
-    query: { refetchInterval: POLLING_INTERVAL }
+  return useQuery({
+    ...getListSnapshotsQueryOptions(params),
+    refetchInterval: POLLING_INTERVAL,
   });
 }
 
 export function useLiveMarketHistory(marketId: string, params?: GetMarketSnapshotsParams) {
-  return useGetMarketSnapshots(marketId, params, {
-    query: { 
-      refetchInterval: POLLING_INTERVAL,
-      enabled: !!marketId 
-    }
+  return useQuery({
+    ...getGetMarketSnapshotsQueryOptions(marketId, params),
+    refetchInterval: POLLING_INTERVAL,
+    enabled: !!marketId,
   });
 }
 
 export function useLiveSignals(params?: ListSignalsParams) {
-  return useListSignals(params, {
-    query: { refetchInterval: POLLING_INTERVAL }
+  return useQuery({
+    ...getListSignalsQueryOptions(params),
+    refetchInterval: POLLING_INTERVAL,
   });
 }
 
 export function useLiveSignalCounts() {
-  return useGetSignalCounts({
-    query: { refetchInterval: POLLING_INTERVAL }
+  return useQuery({
+    ...getGetSignalCountsQueryOptions(),
+    refetchInterval: POLLING_INTERVAL,
   });
 }

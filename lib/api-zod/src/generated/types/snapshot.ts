@@ -20,4 +20,8 @@ export interface Snapshot {
   topHolders?: unknown | null;
   recentTrades?: unknown | null;
   errors?: string[] | null;
+  question?: string | null;
+  eventSlug?: string | null;
+  tags?: string[] | null;
+  negRisk?: boolean | null;
 }
