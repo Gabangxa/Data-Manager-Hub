@@ -2,7 +2,7 @@
 
 ## Overview
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+pnpm workspace monorepo using TypeScript for a **Polymarket Bot** — a read-only market data collection and strategy analysis system. Each package manages its own dependencies.
 
 ## Stack
 
@@ -68,11 +68,32 @@ Database layer using Drizzle ORM with PostgreSQL. Exports a Drizzle client insta
 
 - `src/index.ts` — creates a `Pool` + Drizzle instance, exports schema
 - `src/schema/index.ts` — barrel re-export of all models
-- `src/schema/<modelname>.ts` — table definitions with `drizzle-zod` insert schemas (no models definitions exist right now)
+- `src/schema/markets.ts` — `markets` table: one row per watched Polymarket market
+- `src/schema/snapshots.ts` — `snapshots` table: time-series price/liquidity data per market
+- `src/schema/signals.ts` — `signals` table: strategy signals from spread/neg-risk/reversion engines
 - `drizzle.config.ts` — Drizzle Kit config (requires `DATABASE_URL`, automatically provided by Replit)
 - Exports: `.` (pool, db, schema), `./schema` (schema only)
 
 Production migrations are handled by Replit when publishing. In development, we just use `pnpm --filter @workspace/db run push`, and we fallback to `pnpm --filter @workspace/db run push-force`.
+
+#### Database Schema
+
+**`markets`** — watched market metadata
+- `market_id` (PK), `condition_id`, `question`, `event_title`, `event_slug`
+- `tags[]`, `neg_risk`, `token_ids[]`, `outcomes[]`
+- `volume_24h`, `liquidity`, `end_date`, `hours_to_close`, `fees_enabled`, `score`
+
+**`snapshots`** — point-in-time market data (time-series)
+- `id` (PK bigserial), `market_id` (FK), `collected_at`
+- `yes_price`, `no_price`, `spread`, `midpoint`, `fee_rate_bps`, `open_interest`
+- `price_history`, `top_holders`, `recent_trades` (JSONB), `errors[]`
+- Index: `(market_id, collected_at DESC)`
+
+**`signals`** — strategy engine outputs
+- `id` (PK bigserial), `strategy`, `market_id`, `event_slug`, `signal_score`
+- `metadata` (JSONB), `emitted_at`
+- Paper trade fields: `entry_price`, `exit_price`, `pnl`, `resolved`
+- Indexes: `(strategy, emitted_at DESC)`, `(market_id, emitted_at DESC)`
 
 ### `lib/api-spec` (`@workspace/api-spec`)
 

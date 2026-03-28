@@ -6,9 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface HealthStatus {
-  status: string;
-  markets?: number;
-  snapshots?: number;
-  signals?: number;
+export interface SnapshotCreated {
+  id: number;
 }

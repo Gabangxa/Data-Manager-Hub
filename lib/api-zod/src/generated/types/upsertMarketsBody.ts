@@ -5,10 +5,8 @@
  * Polymarket Bot API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { MarketInput } from "./marketInput";
 
-export interface HealthStatus {
-  status: string;
-  markets?: number;
-  snapshots?: number;
-  signals?: number;
-}
+export type UpsertMarketsBody = {
+  markets: MarketInput[];
+};

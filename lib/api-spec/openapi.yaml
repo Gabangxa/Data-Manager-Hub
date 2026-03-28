@@ -3,13 +3,19 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Polymarket Bot API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: markets
+    description: Watched markets
+  - name: snapshots
+    description: Market snapshots
+  - name: signals
+    description: Strategy signals
 paths:
   /healthz:
     get:
@@ -24,6 +30,169 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /markets:
+    get:
+      operationId: listMarkets
+      tags: [markets]
+      summary: List watched markets
+      description: Returns all markets in the watchlist ordered by score
+      responses:
+        "200":
+          description: Market list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketListResponse"
+    post:
+      operationId: upsertMarkets
+      tags: [markets]
+      summary: Upsert markets
+      description: Insert or update markets from a fresh watchlist scan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                markets:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/MarketInput"
+              required: [markets]
+      responses:
+        "200":
+          description: Upsert result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpsertResult"
+
+  /snapshots:
+    get:
+      operationId: listSnapshots
+      tags: [snapshots]
+      summary: List latest snapshots
+      description: Returns the most recent snapshot for each market
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+      responses:
+        "200":
+          description: Snapshot list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SnapshotListResponse"
+    post:
+      operationId: createSnapshot
+      tags: [snapshots]
+      summary: Create a snapshot
+      description: Insert a new market data snapshot
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SnapshotInput"
+      responses:
+        "201":
+          description: Created snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SnapshotCreated"
+
+  /snapshots/{marketId}:
+    get:
+      operationId: getMarketSnapshots
+      tags: [snapshots]
+      summary: Get snapshots for a market
+      description: Returns recent snapshots for a specific market
+      parameters:
+        - name: marketId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 336
+      responses:
+        "200":
+          description: Market snapshots
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SnapshotListResponse"
+
+  /signals:
+    get:
+      operationId: listSignals
+      tags: [signals]
+      summary: List recent signals
+      description: Returns recent signals from all strategy engines
+      parameters:
+        - name: strategy
+          in: query
+          schema:
+            type: string
+        - name: hours
+          in: query
+          schema:
+            type: integer
+            default: 24
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+      responses:
+        "200":
+          description: Signal list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignalListResponse"
+    post:
+      operationId: createSignal
+      tags: [signals]
+      summary: Create a signal
+      description: Insert a new strategy signal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SignalInput"
+      responses:
+        "201":
+          description: Created signal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignalCreated"
+
+  /signals/counts:
+    get:
+      operationId: getSignalCounts
+      tags: [signals]
+      summary: Get signal counts
+      description: Returns signal counts per strategy for the last 24h
+      responses:
+        "200":
+          description: Signal counts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SignalCountsResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +200,361 @@ components:
       properties:
         status:
           type: string
+        markets:
+          type: integer
+        snapshots:
+          type: integer
+        signals:
+          type: integer
       required:
         - status
 
+    Market:
+      type: object
+      properties:
+        marketId:
+          type: string
+        conditionId:
+          type: string
+          nullable: true
+        question:
+          type: string
+          nullable: true
+        eventTitle:
+          type: string
+          nullable: true
+        eventSlug:
+          type: string
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+          nullable: true
+        negRisk:
+          type: boolean
+          nullable: true
+        tokenIds:
+          type: array
+          items:
+            type: string
+          nullable: true
+        outcomes:
+          type: array
+          items:
+            type: string
+          nullable: true
+        volume24h:
+          type: string
+          nullable: true
+        liquidity:
+          type: string
+          nullable: true
+        endDate:
+          type: string
+          format: date-time
+          nullable: true
+        hoursToClose:
+          type: string
+          nullable: true
+        feesEnabled:
+          type: boolean
+          nullable: true
+        score:
+          type: string
+          nullable: true
+        addedAt:
+          type: string
+          format: date-time
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - marketId
+
+    MarketInput:
+      type: object
+      properties:
+        marketId:
+          type: string
+        conditionId:
+          type: string
+          nullable: true
+        question:
+          type: string
+          nullable: true
+        eventTitle:
+          type: string
+          nullable: true
+        eventSlug:
+          type: string
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+          nullable: true
+        negRisk:
+          type: boolean
+          nullable: true
+        tokenIds:
+          type: array
+          items:
+            type: string
+          nullable: true
+        outcomes:
+          type: array
+          items:
+            type: string
+          nullable: true
+        volume24h:
+          type: string
+          nullable: true
+        liquidity:
+          type: string
+          nullable: true
+        endDate:
+          type: string
+          format: date-time
+          nullable: true
+        hoursToClose:
+          type: string
+          nullable: true
+        feesEnabled:
+          type: boolean
+          nullable: true
+        score:
+          type: string
+          nullable: true
+      required:
+        - marketId
+
+    MarketListResponse:
+      type: object
+      properties:
+        markets:
+          type: array
+          items:
+            $ref: "#/components/schemas/Market"
+        count:
+          type: integer
+      required:
+        - markets
+        - count
+
+    UpsertResult:
+      type: object
+      properties:
+        upserted:
+          type: integer
+      required:
+        - upserted
+
+    Snapshot:
+      type: object
+      properties:
+        id:
+          type: integer
+        marketId:
+          type: string
+        collectedAt:
+          type: string
+          format: date-time
+          nullable: true
+        yesPrice:
+          type: string
+          nullable: true
+        noPrice:
+          type: string
+          nullable: true
+        spread:
+          type: string
+          nullable: true
+        midpoint:
+          type: string
+          nullable: true
+        feeRateBps:
+          type: string
+          nullable: true
+        openInterest:
+          type: string
+          nullable: true
+        priceHistory:
+          nullable: true
+        topHolders:
+          nullable: true
+        recentTrades:
+          nullable: true
+        errors:
+          type: array
+          items:
+            type: string
+          nullable: true
+      required:
+        - id
+        - marketId
+
+    SnapshotInput:
+      type: object
+      properties:
+        marketId:
+          type: string
+        collectedAt:
+          type: string
+          format: date-time
+          nullable: true
+        yesPrice:
+          type: string
+          nullable: true
+        noPrice:
+          type: string
+          nullable: true
+        spread:
+          type: string
+          nullable: true
+        midpoint:
+          type: string
+          nullable: true
+        feeRateBps:
+          type: string
+          nullable: true
+        openInterest:
+          type: string
+          nullable: true
+        priceHistory:
+          nullable: true
+        topHolders:
+          nullable: true
+        recentTrades:
+          nullable: true
+        errors:
+          type: array
+          items:
+            type: string
+          nullable: true
+      required:
+        - marketId
+
+    SnapshotCreated:
+      type: object
+      properties:
+        id:
+          type: integer
+      required:
+        - id
+
+    SnapshotListResponse:
+      type: object
+      properties:
+        snapshots:
+          type: array
+          items:
+            $ref: "#/components/schemas/Snapshot"
+        count:
+          type: integer
+      required:
+        - snapshots
+        - count
+
+    Signal:
+      type: object
+      properties:
+        id:
+          type: integer
+        strategy:
+          type: string
+        marketId:
+          type: string
+          nullable: true
+        eventSlug:
+          type: string
+          nullable: true
+        signalScore:
+          type: string
+          nullable: true
+        metadata:
+          nullable: true
+        emittedAt:
+          type: string
+          format: date-time
+          nullable: true
+        entryPrice:
+          type: string
+          nullable: true
+        exitPrice:
+          type: string
+          nullable: true
+        pnl:
+          type: string
+          nullable: true
+        resolved:
+          type: boolean
+          nullable: true
+      required:
+        - id
+        - strategy
+
+    SignalInput:
+      type: object
+      properties:
+        strategy:
+          type: string
+        marketId:
+          type: string
+          nullable: true
+        eventSlug:
+          type: string
+          nullable: true
+        signalScore:
+          type: string
+          nullable: true
+        metadata:
+          nullable: true
+        entryPrice:
+          type: string
+          nullable: true
+        exitPrice:
+          type: string
+          nullable: true
+        pnl:
+          type: string
+          nullable: true
+        resolved:
+          type: boolean
+          nullable: true
+      required:
+        - strategy
+
+    SignalCreated:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: "-1 if deduplicated (same signal within the last hour)"
+      required:
+        - id
+
+    SignalListResponse:
+      type: object
+      properties:
+        signals:
+          type: array
+          items:
+            $ref: "#/components/schemas/Signal"
+        count:
+          type: integer
+      required:
+        - signals
+        - count
+
+    SignalCountsResponse:
+      type: object
+      properties:
+        counts:
+          type: object
+          additionalProperties:
+            type: integer
+      required:
+        - counts

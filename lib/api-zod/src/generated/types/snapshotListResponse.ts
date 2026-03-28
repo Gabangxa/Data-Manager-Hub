@@ -5,10 +5,9 @@
  * Polymarket Bot API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { Snapshot } from "./snapshot";
 
-export interface HealthStatus {
-  status: string;
-  markets?: number;
-  snapshots?: number;
-  signals?: number;
+export interface SnapshotListResponse {
+  snapshots: Snapshot[];
+  count: number;
 }

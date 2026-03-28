@@ -6,9 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface HealthStatus {
-  status: string;
-  markets?: number;
-  snapshots?: number;
-  signals?: number;
+export interface SignalCreated {
+  /** -1 if deduplicated (same signal within the last hour) */
+  id: number;
 }
