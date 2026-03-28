@@ -1,0 +1,16 @@
+packages:
+  "recharts": "For rendering price history and volume charts"
+  "date-fns": "For formatting relative and absolute timestamps"
+  "framer-motion": "For smooth layout transitions and animations"
+  "clsx": "Utility for constructing className strings conditionally"
+  "tailwind-merge": "Utility function to efficiently merge Tailwind CSS classes"
+
+images:
+  - path: "artifacts/dashboard/public/images/bg-texture.png"
+    description: "Very subtle dark noise/grain texture, almost black, suitable for a dark mode trading terminal background overlay"
+    aspect_ratio: "16:9"
+
+notes:
+  - Uses @workspace/api-client-react for TanStack Query hooks.
+  - Expects numeric values from API as strings (Postgres numeric) and parses them to floats.
+  - Auto-refreshes data every 30 seconds for live terminal feel.
