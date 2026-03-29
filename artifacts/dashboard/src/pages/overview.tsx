@@ -28,22 +28,26 @@ export default function Overview() {
           title="Monitored Markets" 
           value={healthLoading ? "..." : health?.markets || 0}
           subtitle="Active watchlists"
+          tooltip="Markets currently on the bot's watchlist. Refreshed hourly by scanning 6,000+ active Polymarket markets and selecting the top 20 by volume and liquidity."
         />
         <StatCard 
           title="Data Snapshots" 
           value={healthLoading ? "..." : (health?.snapshots || 0).toLocaleString()}
           subtitle="Time-series data points"
+          tooltip="Total price snapshots collected across all markets. Each snapshot captures bid/ask spread, 7-day price history, open interest, holders, and recent trades. New snapshots are collected every 5 minutes."
         />
         <StatCard 
           title="Signals Generated" 
           value={healthLoading ? "..." : (health?.signals || 0).toLocaleString()}
           subtitle="All-time engine outputs"
+          tooltip="All-time count of trading signals emitted by the three strategy engines: spread harvesting (wide bid/ask gaps), neg-risk arbitrage (overround on mutually exclusive outcomes), and mean reversion (price shocks on thin liquidity)."
         />
         <StatCard 
           title="24H Activity" 
           value={countsLoading ? "..." : totalSignals24h}
           trend="up"
           subtitle="Signals in last 24h"
+          tooltip="Signals fired in the last 24 hours across all strategy engines. Higher activity means more pricing inefficiencies were detected in the current market environment."
           className="border-primary/30 bg-primary/5"
         />
       </div>
