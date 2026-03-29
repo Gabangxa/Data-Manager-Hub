@@ -88,7 +88,7 @@ def get_price(token_id: str, side: str = "buy") -> float | None:
 
 
 def get_spread(token_id: str) -> dict:
-    """Get bid/ask spread for a token. Returns {mid, spread, buy, sell}."""
+    """Get spread for a token. Returns {"spread": "value"} only (mid/sell no longer included)."""
     return _get(CLOB_API, "/spread", {"token_id": token_id})
 
 

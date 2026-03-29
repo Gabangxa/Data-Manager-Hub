@@ -73,7 +73,7 @@ def _collect_market_snapshot(market):
                 snapshot["yes_price"] = latest_p
                 snapshot["midpoint"]  = latest_p
                 snapshot["no_price"]  = round(1.0 - latest_p, 6)
-                snapshot["errors"].append("midpoint: used price_history fallback")
+                snapshot["errors"].append("midpoint: DEGRADED — used price_history fallback, not live orderbook")
         except Exception as e:
             logger.warning(f"  price_history fallback failed for {market_id}: {e}")
 
