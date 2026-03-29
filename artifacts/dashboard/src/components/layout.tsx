@@ -6,6 +6,8 @@ import {
   LayoutDashboard,
   Clock,
   TrendingUp,
+  BookOpen,
+  HelpCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLiveHealth } from "@/hooks/use-polymarket";
@@ -16,6 +18,7 @@ const navItems = [
   { href: "/signals",    label: "Signals",     icon: Activity },
   { href: "/performance",label: "Performance", icon: TrendingUp },
   { href: "/snapshots",  label: "Data Feed",   icon: Database },
+  { href: "/docs",       label: "Guide & FAQ", icon: BookOpen },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
@@ -98,6 +101,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <span>{new Date().toISOString().replace('T', ' ').substring(0, 19)} UTC</span>
           </div>
           <div className="flex items-center gap-4">
+            <Link href="/docs" className="flex items-center gap-1.5 text-xs font-mono text-muted-foreground hover:text-foreground transition-colors">
+              <HelpCircle size={14} />
+              <span className="hidden sm:inline">Guide</span>
+            </Link>
             <div className="flex items-center gap-2">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>

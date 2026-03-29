@@ -12,6 +12,7 @@ import MarketDetail from "@/pages/market-detail";
 import Signals from "@/pages/signals";
 import Snapshots from "@/pages/snapshots";
 import Performance from "@/pages/performance";
+import Docs from "@/pages/docs";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,6 +34,7 @@ function Router() {
         <Route path="/signals" component={Signals} />
         <Route path="/snapshots" component={Snapshots} />
         <Route path="/performance" component={Performance} />
+        <Route path="/docs" component={Docs} />
         <Route component={NotFound} />
       </Switch>
     </Layout>
