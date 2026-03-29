@@ -4,7 +4,6 @@ import {
   BarChart2,
   Database,
   LayoutDashboard,
-  Terminal,
   Clock,
   TrendingUp,
 } from "lucide-react";
@@ -28,9 +27,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* Sidebar */}
       <aside className="w-full md:w-64 border-r border-border bg-card/50 flex flex-col backdrop-blur-sm z-10 shrink-0">
         <div className="p-6 border-b border-border flex items-center gap-3">
-          <div className="bg-primary/20 p-2 rounded-md border border-primary/30 text-primary">
-            <Terminal size={24} />
-          </div>
+          <img
+            src={`${import.meta.env.BASE_URL}logo.png`}
+            alt="PolyBot logo"
+            className="w-10 h-10 rounded-lg object-cover shrink-0"
+          />
           <div>
             <h1 className="font-bold text-lg leading-tight tracking-tight">PolyBot</h1>
             <p className="text-xs text-muted-foreground font-mono">v1.0.0-beta</p>
