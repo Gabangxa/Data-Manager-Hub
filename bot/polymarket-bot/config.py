@@ -63,8 +63,13 @@ FEE_RATES = {
 }
 DEFAULT_FEE_RATE = (0.04, 1)  # fallback if category not matched
 
+# ── Logging ───────────────────────────────────────────────────────────────────
+LOG_RETENTION_DAYS      = 14   # delete log files older than this many days
+ZERO_SIGNAL_STREAK_WARN = 6    # warn after N consecutive zero-signal runs (~30 min at 5 min interval)
+
 # ── Paths ─────────────────────────────────────────────────────────────────────
 WATCHLIST_PATH   = "data/watchlist/watched_markets.json"
 SNAPSHOTS_DIR    = "data/snapshots"
 LOGS_DIR         = "logs"
 REPORTS_DIR      = "reports"
+STATE_DIR        = "state"   # lightweight runtime state (streak counters, etc.)

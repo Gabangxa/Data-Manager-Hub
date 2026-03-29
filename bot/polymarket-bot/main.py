@@ -1,14 +1,20 @@
 # main.py — run the full pipeline once
 # Order: schema init → scanner → collector → [spread, neg_risk, reversion] → outcome_tracker
 
+import glob
+import json
 import logging
 import os
 import sys
+import time
 from datetime import datetime, timezone
 
-from config import LOGS_DIR
+from config import LOGS_DIR, STATE_DIR, LOG_RETENTION_DAYS, ZERO_SIGNAL_STREAK_WARN
 
 os.makedirs(LOGS_DIR, exist_ok=True)
+os.makedirs(STATE_DIR, exist_ok=True)
+
+_STREAKS_FILE = os.path.join(STATE_DIR, "engine_streaks.json")
 
 today    = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 log_path = os.path.join(LOGS_DIR, f"run_{today}.log")
@@ -29,6 +35,67 @@ from agents import market_scanner, data_collector
 from agents import spread_engine, neg_risk_engine, reversion_engine, outcome_tracker
 
 
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+def _cleanup_old_logs() -> None:
+    """Delete .log files in LOGS_DIR older than LOG_RETENTION_DAYS days."""
+    cutoff = time.time() - LOG_RETENTION_DAYS * 86_400
+    removed = 0
+    for path in glob.glob(os.path.join(LOGS_DIR, "*.log")):
+        try:
+            if os.path.getmtime(path) < cutoff:
+                os.remove(path)
+                removed += 1
+        except OSError:
+            pass
+    if removed:
+        logger.info(f"Log cleanup: removed {removed} file(s) older than {LOG_RETENTION_DAYS} days")
+
+
+def _update_signal_streaks(results: dict) -> None:
+    """
+    Track consecutive zero-signal runs per engine.
+    Writes state to state/engine_streaks.json and logs a WARNING when any
+    engine exceeds ZERO_SIGNAL_STREAK_WARN consecutive zero-signal runs.
+    Crashed runs (error key present) are skipped so a crash doesn't reset the streak.
+    """
+    try:
+        with open(_STREAKS_FILE) as f:
+            streaks = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        streaks = {}
+
+    now = datetime.now(timezone.utc).isoformat()
+    agents = results.get("agents", {})
+
+    for engine in ("spread_engine", "neg_risk_engine", "reversion_engine"):
+        result = agents.get(engine, {})
+        if "error" in result:
+            continue  # crashed run — don't touch the streak counter
+
+        signals = result.get("signals", 0)
+        entry   = streaks.get(engine, {"streak": 0, "last_signal_at": None})
+
+        if signals > 0:
+            streaks[engine] = {"streak": 0, "last_signal_at": now}
+        else:
+            streak = entry["streak"] + 1
+            streaks[engine] = {"streak": streak, "last_signal_at": entry["last_signal_at"]}
+            if streak >= ZERO_SIGNAL_STREAK_WARN:
+                last = entry["last_signal_at"] or "never"
+                logger.warning(
+                    f"ZERO-SIGNAL STREAK: {engine} has produced 0 signals for "
+                    f"{streak} consecutive runs (~{streak * 5} min). "
+                    f"Last signal at: {last}"
+                )
+
+    try:
+        with open(_STREAKS_FILE, "w") as f:
+            json.dump(streaks, f, indent=2)
+    except OSError as e:
+        logger.warning(f"Could not write streaks file: {e}")
+
+
 def run_pipeline(skip_scan=False):
     run_start = datetime.now(timezone.utc).isoformat()
     results   = {"started_at": run_start, "agents": {}}
@@ -36,6 +103,8 @@ def run_pipeline(skip_scan=False):
     logger.info("=" * 60)
     logger.info(f"Pipeline run started: {run_start}")
     logger.info("=" * 60)
+
+    _cleanup_old_logs()
 
     # Ensure schema exists (idempotent)
     try:
@@ -86,6 +155,7 @@ def run_pipeline(skip_scan=False):
         results["agents"]["outcome_tracker"] = {"error": str(e)}
 
     results["ended_at"] = datetime.now(timezone.utc).isoformat()
+    _update_signal_streaks(results)
     _print_summary(results)
     return results
 
