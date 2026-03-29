@@ -1,19 +1,21 @@
 import { useRoute, Link } from "wouter";
 import { motion } from "framer-motion";
-import { ArrowLeft, Clock, Activity, DollarSign, Layers, AlertTriangle } from "lucide-react";
-import { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend 
+import { ArrowLeft, Clock, Activity, AlertTriangle, Zap, CheckCircle2, XCircle } from "lucide-react";
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from "recharts";
-import { useLiveMarketHistory } from "@/hooks/use-polymarket";
+import { useLiveMarketHistory, useMarketSignals } from "@/hooks/use-polymarket";
 import { StatCard, Badge } from "@/components/ui-elements";
-import { formatCurrency, formatPrice, parseNumeric, formatPercent } from "@/lib/utils";
+import { formatCurrency, formatPrice, parseNumeric, getStrategyColor, formatRelativeTime } from "@/lib/utils";
 import { format } from "date-fns";
 
 export default function MarketDetail() {
   const [, params] = useRoute("/markets/:id");
   const marketId = params?.id || "";
-  
-  const { data, isLoading, isError } = useLiveMarketHistory(marketId, { limit: 168 }); // 7 days of hourly data
+
+  const { data, isLoading, isError } = useLiveMarketHistory(marketId, { limit: 168 });
+  const { data: signalsData } = useMarketSignals(marketId);
+  const latestSignal = signalsData?.signals?.[0] ?? null;
 
   if (isLoading) {
     return <div className="animate-pulse space-y-6 p-6">
@@ -158,6 +160,78 @@ export default function MarketDetail() {
         </div>
       </div>
 
+      {/* Latest signal panel */}
+      <div className="terminal-panel">
+        <div className="terminal-header">
+          <span className="flex items-center gap-2"><Zap size={14} /> Latest Strategy Signal</span>
+        </div>
+        {!latestSignal ? (
+          <div className="px-6 py-8 text-center text-muted-foreground font-mono text-sm">
+            No signals generated for this market in the last 7 days
+          </div>
+        ) : (
+          <div className="p-6 flex flex-col sm:flex-row sm:items-center gap-6">
+            {/* Strategy + time */}
+            <div className="flex-1 space-y-3">
+              <div className="flex items-center gap-3 flex-wrap">
+                <Badge className={getStrategyColor(latestSignal.strategy)}>
+                  {latestSignal.strategy}
+                </Badge>
+                {latestSignal.resolved ? (
+                  latestSignal.outcome === true ? (
+                    <span className="flex items-center gap-1 text-xs font-mono text-success">
+                      <CheckCircle2 size={13} /> WIN
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-xs font-mono text-destructive">
+                      <XCircle size={13} /> LOSS
+                    </span>
+                  )
+                ) : (
+                  <Badge className="bg-primary/20 text-primary border-primary/30 animate-pulse">Active</Badge>
+                )}
+                <span className="text-xs font-mono text-muted-foreground">
+                  {formatRelativeTime(latestSignal.emittedAt)}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-mono">
+                <div>
+                  <div className="text-muted-foreground mb-0.5">Score</div>
+                  <div className="text-primary font-bold">
+                    {latestSignal.signalScore ? parseNumeric(latestSignal.signalScore).toFixed(3) : "—"}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground mb-0.5">Entry</div>
+                  <div className="text-foreground">
+                    {latestSignal.entryPrice ? formatPrice(latestSignal.entryPrice) : "—"}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground mb-0.5">Exit</div>
+                  <div className="text-foreground">
+                    {latestSignal.exitPrice ? formatPrice(latestSignal.exitPrice) : "—"}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground mb-0.5">PnL</div>
+                  <div className={
+                    latestSignal.pnl === null || latestSignal.pnl === undefined
+                      ? "text-muted-foreground"
+                      : parseNumeric(latestSignal.pnl) >= 0
+                      ? "text-success font-bold"
+                      : "text-destructive font-bold"
+                  }>
+                    {latestSignal.pnl != null
+                      ? `${parseNumeric(latestSignal.pnl) >= 0 ? "+" : ""}${parseNumeric(latestSignal.pnl).toFixed(4)}`
+                      : "—"}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </motion.div>
   );
 }

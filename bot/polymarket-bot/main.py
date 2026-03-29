@@ -1,5 +1,5 @@
 # main.py — run the full pipeline once
-# Order: schema init → scanner → collector → [spread, neg_risk, reversion]
+# Order: schema init → scanner → collector → [spread, neg_risk, reversion] → outcome_tracker
 
 import logging
 import os
@@ -26,7 +26,7 @@ logger = logging.getLogger("main")
 
 import db
 from agents import market_scanner, data_collector
-from agents import spread_engine, neg_risk_engine, reversion_engine
+from agents import spread_engine, neg_risk_engine, reversion_engine, outcome_tracker
 
 
 def run_pipeline(skip_scan=False):
@@ -76,6 +76,15 @@ def run_pipeline(skip_scan=False):
             logger.error(f"{name} crashed: {e}", exc_info=True)
             results["agents"][name] = {"error": str(e)}
 
+    # Resolve open signals whose window has expired — non-blocking
+    try:
+        result = outcome_tracker.run()
+        results["agents"]["outcome_tracker"] = result
+        logger.info(f"outcome_tracker: {result}")
+    except Exception as e:
+        logger.error(f"outcome_tracker crashed: {e}", exc_info=True)
+        results["agents"]["outcome_tracker"] = {"error": str(e)}
+
     results["ended_at"] = datetime.now(timezone.utc).isoformat()
     _print_summary(results)
     return results
@@ -116,6 +125,12 @@ def _print_summary(results):
         pass
 
     print(f"  Total signals this run: {total}")
+
+    ot = agents.get("outcome_tracker", {})
+    if ot and "error" not in ot:
+        print(f"  Outcomes resolved: {ot.get('resolved', 0)} "
+              f"(skipped: {ot.get('skipped', 0)})")
+
     print("─" * 50 + "\n")
 
 

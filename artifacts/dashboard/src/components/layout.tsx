@@ -1,20 +1,22 @@
 import { Link, useLocation } from "wouter";
-import { 
-  Activity, 
-  BarChart2, 
-  Database, 
-  LayoutDashboard, 
+import {
+  Activity,
+  BarChart2,
+  Database,
+  LayoutDashboard,
   Terminal,
-  Clock
+  Clock,
+  TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLiveHealth } from "@/hooks/use-polymarket";
 
 const navItems = [
-  { href: "/", label: "Overview", icon: LayoutDashboard },
-  { href: "/markets", label: "Markets", icon: BarChart2 },
-  { href: "/signals", label: "Signals", icon: Activity },
-  { href: "/snapshots", label: "Data Feed", icon: Database },
+  { href: "/",           label: "Overview",    icon: LayoutDashboard },
+  { href: "/markets",    label: "Markets",     icon: BarChart2 },
+  { href: "/signals",    label: "Signals",     icon: Activity },
+  { href: "/performance",label: "Performance", icon: TrendingUp },
+  { href: "/snapshots",  label: "Data Feed",   icon: Database },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {

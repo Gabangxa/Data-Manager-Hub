@@ -31,6 +31,7 @@ router.get("/signals/counts", async (req, res) => {
 router.get("/signals", async (req, res) => {
   try {
     const strategy = req.query.strategy as string | undefined;
+    const marketId = req.query.marketId as string | undefined;
     const hours = Math.min(Number(req.query.hours) || 24, 168);
     const limit = Math.min(Number(req.query.limit) || 100, 500);
 
@@ -39,6 +40,9 @@ router.get("/signals", async (req, res) => {
     const conditions = [gt(signalsTable.emittedAt, cutoff)];
     if (strategy) {
       conditions.push(eq(signalsTable.strategy, strategy));
+    }
+    if (marketId) {
+      conditions.push(eq(signalsTable.marketId, marketId));
     }
 
     const signals = await db
@@ -54,6 +58,7 @@ router.get("/signals", async (req, res) => {
         exitPrice: signalsTable.exitPrice,
         pnl: signalsTable.pnl,
         resolved: signalsTable.resolved,
+        outcome: signalsTable.outcome,
         question: marketsTable.question,
       })
       .from(signalsTable)

@@ -99,7 +99,8 @@ CREATE TABLE IF NOT EXISTS signals (
     entry_price     NUMERIC,
     exit_price      NUMERIC,
     pnl             NUMERIC,
-    resolved        BOOLEAN DEFAULT FALSE
+    resolved        BOOLEAN DEFAULT FALSE,
+    outcome         BOOLEAN
 );
 
 CREATE INDEX IF NOT EXISTS signals_strategy_emitted
@@ -107,6 +108,9 @@ CREATE INDEX IF NOT EXISTS signals_strategy_emitted
 
 CREATE INDEX IF NOT EXISTS signals_market_emitted
     ON signals (market_id, emitted_at DESC);
+
+-- Migration: add outcome column to existing tables
+ALTER TABLE signals ADD COLUMN IF NOT EXISTS outcome BOOLEAN;
 """
 
 
@@ -390,6 +394,60 @@ def get_signal_counts() -> dict:
                 GROUP BY strategy
             """)
             return {r["strategy"]: r["count"] for r in cur.fetchall()}
+
+
+def get_unresolved_signals(strategy: str = None, older_than_hours: int = 2) -> list[dict]:
+    """
+    Return unresolved signals older than the given window.
+    Used by outcome_tracker to find signals ready for resolution.
+    """
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            if strategy:
+                cur.execute("""
+                    SELECT s.*, m.tags
+                    FROM signals s
+                    LEFT JOIN markets m ON m.market_id = s.market_id
+                    WHERE s.resolved = FALSE
+                      AND s.strategy = %s
+                      AND s.emitted_at < NOW() - INTERVAL '%s hours'
+                    ORDER BY s.emitted_at DESC
+                    LIMIT 500
+                """, (strategy, older_than_hours))
+            else:
+                cur.execute("""
+                    SELECT s.*, m.tags
+                    FROM signals s
+                    LEFT JOIN markets m ON m.market_id = s.market_id
+                    WHERE s.resolved = FALSE
+                      AND s.emitted_at < NOW() - INTERVAL '%s hours'
+                    ORDER BY s.emitted_at DESC
+                    LIMIT 500
+                """, (older_than_hours,))
+            rows = []
+            for r in cur.fetchall():
+                row = dict(r)
+                if isinstance(row.get("metadata"), str):
+                    try:
+                        row["metadata"] = json.loads(row["metadata"])
+                    except Exception:
+                        row["metadata"] = {}
+                rows.append(row)
+            return rows
+
+
+def update_signal_outcome(signal_id: int, exit_price: float, pnl: float, outcome: bool) -> None:
+    """Mark a signal as resolved with its computed outcome and pnl."""
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                UPDATE signals
+                SET resolved   = TRUE,
+                    exit_price = %s,
+                    pnl        = %s,
+                    outcome    = %s
+                WHERE id = %s
+            """, (exit_price, pnl, outcome, signal_id))
 
 
 def get_db_stats() -> dict:

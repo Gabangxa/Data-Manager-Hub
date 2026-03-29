@@ -25,6 +25,7 @@ export const signalsTable = pgTable(
     exitPrice: numeric("exit_price"),
     pnl: numeric("pnl"),
     resolved: boolean("resolved").default(false),
+    outcome: boolean("outcome"),
   },
   (t) => [
     index("signals_strategy_emitted").on(t.strategy, t.emittedAt),
