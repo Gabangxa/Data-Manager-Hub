@@ -17,20 +17,23 @@ import { format } from "date-fns";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function fmtWinRate(rate: number | null): string {
-  if (rate === null) return "—";
-  return `${(rate * 100).toFixed(1)}%`;
+function fmtWinRate(rate: number | string | null | undefined): string {
+  if (rate === null || rate === undefined) return "—";
+  const n = parseNumeric(rate);
+  return `${(n * 100).toFixed(1)}%`;
 }
 
-function fmtPnl(pnl: number | null): string {
-  if (pnl === null) return "—";
-  return pnl >= 0 ? `+${pnl.toFixed(4)}` : pnl.toFixed(4);
+function fmtPnl(pnl: number | string | null | undefined): string {
+  if (pnl === null || pnl === undefined) return "—";
+  const n = parseNumeric(pnl);
+  return n >= 0 ? `+${n.toFixed(4)}` : n.toFixed(4);
 }
 
-function winRateColor(rate: number | null): string {
-  if (rate === null) return "text-muted-foreground";
-  if (rate >= 0.6) return "text-success";
-  if (rate >= 0.4) return "text-yellow-400";
+function winRateColor(rate: number | string | null | undefined): string {
+  if (rate === null || rate === undefined) return "text-muted-foreground";
+  const n = parseNumeric(rate);
+  if (n >= 0.6) return "text-success";
+  if (n >= 0.4) return "text-yellow-400";
   return "text-destructive";
 }
 
