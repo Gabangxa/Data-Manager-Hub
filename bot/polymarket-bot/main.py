@@ -30,6 +30,7 @@ logging.basicConfig(
 
 logger = logging.getLogger("main")
 
+import alerts
 import db
 from agents import market_scanner, data_collector
 from agents import spread_engine, neg_risk_engine, reversion_engine, outcome_tracker
@@ -88,6 +89,7 @@ def _update_signal_streaks(results: dict) -> None:
                     f"{streak} consecutive runs (~{streak * 5} min). "
                     f"Last signal at: {last}"
                 )
+                alerts.zero_signal_streak(engine, streak, entry["last_signal_at"])
 
     try:
         with open(_STREAKS_FILE, "w") as f:

@@ -27,6 +27,7 @@ logging.basicConfig(
 logger = logging.getLogger("scheduler")
 
 from config import POLL_INTERVAL_SECONDS
+import alerts
 
 # Refresh watchlist every N runs  (default: every 12 runs ≈ 1h at 5min interval)
 SCAN_INTERVAL_RUNS = 12
@@ -63,6 +64,7 @@ def main():
             run_pipeline(skip_scan=skip_scan)
         except Exception as e:
             logger.error(f"Pipeline run #{run_count} failed: {e}", exc_info=True)
+            alerts.pipeline_crashed(run_count, e)
 
         logger.info(f"Sleeping {POLL_INTERVAL_SECONDS}s...")
         time.sleep(POLL_INTERVAL_SECONDS)
