@@ -44,8 +44,10 @@ def main():
     logger.info(f"Scan interval : every {SCAN_INTERVAL_RUNS} runs")
     logger.info("=" * 60)
 
-    # Start HTTP keep-alive server in background thread
-    port = int(os.environ.get("PORT", 8080))
+    # Start HTTP keep-alive server in background thread.
+    # Uses BOT_PORT (default 5001) so it never conflicts with the
+    # Express API server which owns the PORT variable (8080).
+    port = int(os.environ.get("BOT_PORT", 5001))
     start_server(host="0.0.0.0", port=port)
 
     run_count = 0
