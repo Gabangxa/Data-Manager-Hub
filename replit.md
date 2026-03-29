@@ -116,6 +116,29 @@ Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHea
 
 Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
 
+## Current System Status (as of 2026-03-29)
+
+- **Markets tracked**: 41
+- **Snapshots collected**: 2,735+
+- **Total signals**: 52 (23 resolved, 29 open)
+- **Win rate**: 60.9% overall across resolved signals
+- **Strategies**: SPREAD_HARVESTING (42 signals, 61.9% win rate), MEAN_REVERSION (10 signals, 50.0% win rate)
+- **Bot frequency**: runs every 6 hours via Replit workflow scheduler
+- **Dashboard**: Performance page confirmed working — all PNL and win rate values render correctly
+
+## Bot Architecture (`bot/polymarket-bot/`)
+
+Python bot that writes directly to the same PostgreSQL database used by the Express API.
+
+- `scheduler.py` — entry point; runs a blocking scheduler loop (APScheduler) that fires every 6 hours; also starts a Flask keep-alive server on `BOT_PORT` (default `5001`)
+- `server.py` — minimal Flask HTTP server to keep the Replit workflow alive
+- `agents/data_collector.py` — fetches market metadata and snapshots from Polymarket public APIs; writes to `markets` and `snapshots` tables
+- `agents/signal_engine.py` — evaluates spread-harvesting and mean-reversion strategies; writes signals to `signals` table
+- `api.py` — low-level wrappers around Polymarket CLOB/Gamma REST endpoints
+- `state.json` — persisted engine state (streak counters, last signal timestamps per strategy)
+
+**Important port rule**: `PORT=8080` is reserved for the Express API server. The bot's Flask keep-alive must use `BOT_PORT` (default `5001`). Never let the bot read `PORT`.
+
 ## Known Issues & Fixes
 
 ### Port conflict: bot Flask server vs Express API server
@@ -141,3 +164,9 @@ Utility scripts package. Each script is a `.ts` file in `src/` with a correspond
 **Root cause**: Polymarket's CLOB `/spread` endpoint no longer returns `mid` or `sell` fields. The data collector was reading `data['mid']` from the spread response, which was always missing.  
 **Fix**: Midpoint is now fetched from the dedicated `/midpoint` endpoint separately. Zero values from `/midpoint` are treated as `None` (no data) rather than a real price. Fallback price history is labeled `DEGRADED` when midpoint is unavailable.  
 **Files changed**: `bot/polymarket-bot/agents/data_collector.py`, `bot/polymarket-bot/api.py`
+
+### Production site appears broken after deployment (browser cache)
+**Symptom**: The deployed `.replit.app` site shows crashes or a blank screen even after publishing, while the API is confirmed healthy (200s in deployment logs).  
+**Root cause**: Vite produces a deterministic content hash for the JS bundle (`index-CWnspTtR.js`). Browsers aggressively cache this file. If a user visited the production site before a fix was deployed, their browser serves the stale cached bundle — even after a new deployment — because the filename hash didn't change.  
+**Fix**: Hard-refresh the production URL (`Ctrl+Shift+R` / `Cmd+Shift+R`) or open it in an incognito window to bypass the browser cache. A new deployment also forces Replit to serve fresh assets.  
+**Verification**: Dev app confirmed working post-fix — Performance page renders 60.9% win rate and all PNL values correctly.
