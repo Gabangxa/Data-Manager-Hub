@@ -1,0 +1,109 @@
+# agents/data_collector.py
+# Phase 2: Collect a full data snapshot for each watched market.
+# Output: inserted into the snapshots table in Postgres.
+
+import logging
+from datetime import datetime, timezone
+
+import api
+import db
+from config import PRICE_HISTORY_FIDELITY, PRICE_HISTORY_LIMIT
+
+logger = logging.getLogger(__name__)
+FIDELITY_MAP = {"1m": 1, "5m": 5, "1h": 60, "1d": 1440}
+
+
+def _collect_market_snapshot(market):
+    market_id = market["market_id"]
+    token_ids = market.get("token_ids") or []
+    yes_token = token_ids[0] if token_ids else None
+
+    snapshot = {
+        "market_id":     market_id,
+        "collected_at":  datetime.now(timezone.utc),
+        "yes_price":     None,
+        "no_price":      None,
+        "spread":        None,
+        "midpoint":      None,
+        "fee_rate_bps":  0,
+        "open_interest": None,
+        "price_history": [],
+        "top_holders":   [],
+        "recent_trades": [],
+        "errors":        [],
+    }
+
+    if not yes_token:
+        snapshot["errors"].append("no token_ids")
+        return snapshot
+
+    try:
+        sd = api.get_spread(yes_token)
+        snapshot["spread"]    = float(sd.get("spread", 0))
+        snapshot["midpoint"]  = float(sd.get("mid", 0))
+        snapshot["yes_price"] = float(sd.get("sell", 0))
+        snapshot["no_price"]  = 1.0 - snapshot["yes_price"]
+    except Exception as e:
+        snapshot["errors"].append(f"spread: {e}")
+        logger.warning(f"  spread failed for {market_id}: {e}")
+
+    try:
+        fidelity_mins = FIDELITY_MAP.get(PRICE_HISTORY_FIDELITY, 60)
+        snapshot["price_history"] = api.get_price_history(
+            yes_token, fidelity=fidelity_mins, days=7)
+    except Exception as e:
+        snapshot["errors"].append(f"price_history: {e}")
+        logger.warning(f"  price_history failed for {market_id}: {e}")
+
+    try:
+        snapshot["fee_rate_bps"] = api.get_fee_rate(yes_token)
+    except Exception as e:
+        snapshot["errors"].append(f"fee_rate: {e}")
+
+    try:
+        snapshot["open_interest"] = api.get_open_interest(market_id)
+    except Exception as e:
+        snapshot["errors"].append(f"open_interest: {e}")
+        logger.warning(f"  OI failed for {market_id}: {e}")
+
+    try:
+        condition_id = market.get("condition_id")
+        if condition_id:
+            snapshot["top_holders"] = api.get_top_holders(condition_id, limit=10)
+    except Exception as e:
+        snapshot["errors"].append(f"top_holders: {e}")
+
+    try:
+        snapshot["recent_trades"] = api.get_trades(market_id, limit=50)
+    except Exception as e:
+        snapshot["errors"].append(f"recent_trades: {e}")
+
+    return snapshot
+
+
+def run():
+    logger.info("=== Data collector starting ===")
+
+    watchlist = db.get_watchlist()
+    if not watchlist:
+        logger.warning("Watchlist is empty — run market_scanner first")
+        return {"agent": "data_collector", "collected": 0, "failed": 0}
+
+    collected = 0
+    failed    = 0
+
+    for market in watchlist:
+        market_id = market.get("market_id", "unknown")
+        logger.info(f"Collecting: {market_id} — {str(market.get('question', ''))[:60]}")
+        try:
+            snapshot = _collect_market_snapshot(market)
+            db.insert_snapshot(snapshot)
+            if snapshot["errors"]:
+                logger.warning(f"  Saved with {len(snapshot['errors'])} partial errors")
+            collected += 1
+        except Exception as e:
+            logger.error(f"  Failed for {market_id}: {e}")
+            failed += 1
+
+    logger.info(f"Collection complete: {collected} saved, {failed} failed")
+    return {"agent": "data_collector", "collected": collected, "failed": failed}
