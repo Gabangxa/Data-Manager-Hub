@@ -115,3 +115,29 @@ Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHea
 ### `scripts` (`@workspace/scripts`)
 
 Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
+
+## Known Issues & Fixes
+
+### Port conflict: bot Flask server vs Express API server
+**Symptom**: `EADDRINUSE: address already in use :::8080` — API server fails to start.  
+**Root cause**: `bot/polymarket-bot/scheduler.py` starts a Flask keep-alive server using `os.environ.get("PORT", 8080)`. Replit sets `PORT=8080` for every workflow, so the Python bot grabbed port 8080 first, leaving the Express API server unable to bind.  
+**Fix**: Bot now reads `BOT_PORT` (defaults to `5001`) instead of `PORT` for its keep-alive Flask server. `PORT` is reserved exclusively for the Express API server.  
+**Files changed**: `bot/polymarket-bot/scheduler.py`
+
+### Dashboard crash: `pnl.toFixed is not a function`
+**Symptom**: Performance page crashes at runtime immediately on load.  
+**Root cause**: PostgreSQL `numeric` columns serialize as strings over JSON. The `fmtPnl`, `fmtWinRate`, and `winRateColor` helpers in `performance.tsx` assumed numeric inputs but received strings, so `.toFixed()` failed.  
+**Fix**: All three helpers now pass their input through `parseNumeric()` (already imported from `@/lib/utils`) before doing arithmetic. Input types widened to `number | string | null | undefined`.  
+**Files changed**: `artifacts/dashboard/src/pages/performance.tsx`
+
+### Production build fails silently: missing env vars at build time
+**Symptom**: Deployed app shows blank screen; build log shows no errors.  
+**Root cause**: `artifacts/dashboard/vite.config.ts` threw a hard error if `PORT` or `BASE_PATH` were not set. These vars are only needed at runtime (dev server), not at build time — so the production `vite build` was crashing before it could produce any output.  
+**Fix**: `PORT` now defaults to `3000` and `BASE_PATH` defaults to `/` when not set, allowing `vite build` to complete successfully in all environments.  
+**Files changed**: `artifacts/dashboard/vite.config.ts`
+
+### yes_price always 0 / spread signals not firing
+**Symptom**: `yes_price` stored as 0 in all snapshots; spread engine fires 0 signals.  
+**Root cause**: Polymarket's CLOB `/spread` endpoint no longer returns `mid` or `sell` fields. The data collector was reading `data['mid']` from the spread response, which was always missing.  
+**Fix**: Midpoint is now fetched from the dedicated `/midpoint` endpoint separately. Zero values from `/midpoint` are treated as `None` (no data) rather than a real price. Fallback price history is labeled `DEGRADED` when midpoint is unavailable.  
+**Files changed**: `bot/polymarket-bot/agents/data_collector.py`, `bot/polymarket-bot/api.py`
