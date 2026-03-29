@@ -2,6 +2,7 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { db } from "@workspace/db";
 import { sql } from "drizzle-orm";
+import { seedProductionIfEmpty } from "./seed/migrate";
 
 const rawPort = process.env["PORT"];
 
@@ -21,7 +22,13 @@ async function applyMigrations() {
   await db.execute(
     sql`ALTER TABLE signals ADD COLUMN IF NOT EXISTS outcome boolean`,
   );
-  logger.info("DB migrations applied");
+  logger.info({
+    pgHost: process.env["PGHOST"] ?? "unknown",
+    pgDatabase: process.env["PGDATABASE"] ?? "unknown",
+    pgPort: process.env["PGPORT"] ?? "unknown",
+    pgUser: process.env["PGUSER"] ?? "unknown",
+  }, "DB migrations applied");
+  await seedProductionIfEmpty();
 }
 
 applyMigrations()

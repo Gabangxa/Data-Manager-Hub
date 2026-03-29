@@ -139,6 +139,32 @@ Python bot that writes directly to the same PostgreSQL database used by the Expr
 
 **Important port rule**: `PORT=8080` is reserved for the Express API server. The bot's Flask keep-alive must use `BOT_PORT` (default `5001`). Never let the bot read `PORT`.
 
+## Data Migration: Dev → Production
+
+### One-time seed (on next deployment)
+The API server auto-seeds the production database on first startup if it detects an empty `markets` table. Seed data lives in `artifacts/api-server/src/seed/`:
+- `markets.json` — 41 market rows (34KB)
+- `signals.json` — 57 signal rows (42KB)
+- `snapshots.json` — 2,920 snapshot rows, core price fields only (666KB, no heavy JSONB blobs)
+
+`artifacts/api-server/src/seed/migrate.ts` runs inside `applyMigrations()` at startup. If `markets` has >0 rows, the seed is skipped — so it is safe to restart the production server indefinitely.
+
+### Secure admin endpoints (MIGRATION_TOKEN required)
+Temporary endpoints (secured with `x-migration-token` header) added to `artifacts/api-server/src/routes/admin.ts`:
+- `GET /api/admin/migrate/status` — counts rows in all tables
+- `POST /api/admin/migrate/markets` — bulk upsert markets
+- `POST /api/admin/migrate/snapshots` — bulk insert snapshots (batched, 200/request)
+- `POST /api/admin/migrate/signals` — bulk insert signals
+- `GET /api/admin/prod-db-url` — returns the production `DATABASE_URL` (for configuring bot)
+
+After the migration is complete these endpoints should be removed and the `MIGRATION_TOKEN` env var deleted.
+
+### Bot writing to production going forward
+The bot's `db.py` `_get_url()` now checks `PROD_DATABASE_URL` first, falling back to `DATABASE_URL`. To make the bot write to the production database:
+1. After deploying, call `GET /api/admin/prod-db-url` on the production URL to retrieve the production DB connection string
+2. Store it as a secret named `PROD_DATABASE_URL` in the dev workspace
+3. Restart the bot workflow
+
 ## Known Issues & Fixes
 
 ### Port conflict: bot Flask server vs Express API server

@@ -22,7 +22,9 @@ logger = logging.getLogger(__name__)
 # ── Connection ────────────────────────────────────────────────────────────────
 
 def _get_url() -> str:
-    url = os.environ.get("DATABASE_URL")
+    # PROD_DATABASE_URL takes priority — set this secret to write to the
+    # production database. Falls back to DATABASE_URL (dev database).
+    url = os.environ.get("PROD_DATABASE_URL") or os.environ.get("DATABASE_URL")
     if not url:
         raise RuntimeError(
             "DATABASE_URL environment variable not set. "
