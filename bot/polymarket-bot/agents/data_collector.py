@@ -37,15 +37,24 @@ def _collect_market_snapshot(market):
         snapshot["errors"].append("no token_ids")
         return snapshot
 
+    # /spread only returns {"spread": "value"} — no longer includes mid or sell
     try:
         sd = api.get_spread(yes_token)
-        snapshot["spread"]    = float(sd.get("spread", 0))
-        snapshot["midpoint"]  = float(sd.get("mid", 0))
-        snapshot["yes_price"] = float(sd.get("sell", 0))
-        snapshot["no_price"]  = 1.0 - snapshot["yes_price"]
+        snapshot["spread"] = float(sd.get("spread", 0)) or None
     except Exception as e:
         snapshot["errors"].append(f"spread: {e}")
         logger.warning(f"  spread failed for {market_id}: {e}")
+
+    # Fetch midpoint separately via /midpoint endpoint
+    try:
+        mid = api.get_midpoint(yes_token)
+        if mid is not None and mid > 0:
+            snapshot["midpoint"]  = mid
+            snapshot["yes_price"] = mid
+            snapshot["no_price"]  = round(1.0 - mid, 6)
+    except Exception as e:
+        snapshot["errors"].append(f"midpoint: {e}")
+        logger.warning(f"  midpoint failed for {market_id}: {e}")
 
     try:
         fidelity_mins = FIDELITY_MAP.get(PRICE_HISTORY_FIDELITY, 60)
@@ -54,6 +63,19 @@ def _collect_market_snapshot(market):
     except Exception as e:
         snapshot["errors"].append(f"price_history: {e}")
         logger.warning(f"  price_history failed for {market_id}: {e}")
+
+    # Fallback: derive price from latest price_history point if midpoint fetch failed
+    if snapshot["yes_price"] is None and snapshot["price_history"]:
+        try:
+            hist = sorted(snapshot["price_history"], key=lambda x: x.get("t", 0))
+            latest_p = float(hist[-1].get("p", 0)) if hist else 0.0
+            if latest_p > 0:
+                snapshot["yes_price"] = latest_p
+                snapshot["midpoint"]  = latest_p
+                snapshot["no_price"]  = round(1.0 - latest_p, 6)
+                snapshot["errors"].append("midpoint: used price_history fallback")
+        except Exception as e:
+            logger.warning(f"  price_history fallback failed for {market_id}: {e}")
 
     try:
         snapshot["fee_rate_bps"] = api.get_fee_rate(yes_token)

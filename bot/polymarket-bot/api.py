@@ -124,7 +124,8 @@ def get_price_history(
 def get_midpoint(token_id: str) -> float | None:
     try:
         data = _get(CLOB_API, "/midpoint", {"token_id": token_id})
-        return float(data.get("mid", 0))
+        v = float(data.get("mid", 0))
+        return v if v > 0 else None
     except Exception:
         return None
 
