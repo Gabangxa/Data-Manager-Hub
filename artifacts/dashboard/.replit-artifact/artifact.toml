@@ -20,3 +20,7 @@ run = "pnpm --filter @workspace/dashboard run dev"
 [services.env]
 PORT = "23183"
 BASE_PATH = "/"
+
+[services.production]
+build = "pnpm --filter @workspace/dashboard run build"
+serve = "static"
