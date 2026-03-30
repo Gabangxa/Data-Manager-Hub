@@ -7,8 +7,13 @@ id = "artifacts/api-server"
 id = "artifacts/mockup-sandbox"
 
 [deployment]
+run = ["bash", "-c", "cd bot/polymarket-bot && python scheduler.py"]
 router = "application"
 deploymentTarget = "autoscale"
+
+[[ports]]
+localPort = 8080
+externalPort = 80
 
 [deployment.postBuild]
 args = ["pnpm", "store", "prune"]
