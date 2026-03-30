@@ -12,7 +12,7 @@ router = "application"
 deploymentTarget = "autoscale"
 
 [[ports]]
-localPort = 8080
+localPort = 5001
 externalPort = 80
 
 [deployment.postBuild]
