@@ -8,8 +8,7 @@ id = "artifacts/mockup-sandbox"
 
 [deployment]
 run = ["bash", "-c", "cd bot/polymarket-bot && python scheduler.py"]
-router = "application"
-deploymentTarget = "autoscale"
+deploymentTarget = "vm"
 
 [deployment.postBuild]
 args = ["pnpm", "store", "prune"]
