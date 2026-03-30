@@ -1,14 +1,14 @@
 {
   "spread_engine": {
-    "streak": 1,
+    "streak": 3,
     "last_signal_at": "2026-03-30T06:39:48.204304+00:00"
   },
   "neg_risk_engine": {
-    "streak": 128,
+    "streak": 130,
     "last_signal_at": null
   },
   "reversion_engine": {
-    "streak": 2,
+    "streak": 4,
     "last_signal_at": "2026-03-30T06:34:03.999209+00:00"
   }
 }
