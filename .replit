@@ -11,10 +11,6 @@ run = ["bash", "-c", "cd bot/polymarket-bot && python scheduler.py"]
 router = "application"
 deploymentTarget = "autoscale"
 
-[[ports]]
-localPort = 5001
-externalPort = 80
-
 [deployment.postBuild]
 args = ["pnpm", "store", "prune"]
 env = { "CI" = "true" }
