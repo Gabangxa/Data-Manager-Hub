@@ -49,6 +49,3 @@ timeoutMs = 20000
 channel = "stable-25_05"
 
 [userenv]
-
-[userenv.shared]
-MIGRATION_TOKEN = "11b9e3353fb918bfcb1351e58ec26334ca47ba5b49620272014acc73006fef6a"

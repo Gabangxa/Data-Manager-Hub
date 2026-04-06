@@ -93,10 +93,4 @@ router.get("/admin/migrate/status", async (req, res) => {
   });
 });
 
-router.get("/admin/prod-db-url", (req, res) => {
-  if (!checkToken(req, res)) return;
-  const url = process.env.DATABASE_URL ?? null;
-  return res.json({ url });
-});
-
 export default router;
